@@ -5,6 +5,7 @@ import logging
 from app.core.config import settings
 from app.services.scheduler import SchedulerService
 from app.integrations.mojo_client import MojoClient
+from app.core.database import engine, Base
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -33,6 +34,10 @@ async def startup_event():
     global mojo_client, scheduler
     
     logger.info("Starting AI Mojo Assistant...")
+    
+    # Create database tables
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     
     mojo_client = MojoClient(
         base_url=settings.MOJO_BASE_URL,
