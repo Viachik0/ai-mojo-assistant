@@ -32,6 +32,8 @@ class SchedulerService:
         # Schedule tasks
         schedule.every(10).minutes.do(self._check_grading_timeliness)
         schedule.every().monday.at("09:00").do(self._send_weekly_reports)
+        schedule.every().day.at("08:00").do(self._check_attendance_alerts)
+        schedule.every().day.at("18:00").do(self._check_homework_alerts)
         
         while self.is_running:
             try:
@@ -56,3 +58,53 @@ class SchedulerService:
             await self.analysis_service.generate_weekly_reports()
         except Exception as e:
             logger.error(f"Error sending weekly reports: {e}")
+    
+    async def _check_attendance_alerts(self):
+        """Check for attendance issues and send alerts"""
+        logger.info("Checking attendance patterns...")
+        try:
+            students = await self.mojo_client.get_students()
+            
+            for student in students:
+                # Analyze last 7 days of attendance
+                attendance_analysis = await self.analysis_service.analyze_student_attendance(
+                    student['id'], 
+                    days=7
+                )
+                
+                # Send alerts if any issues detected
+                alerts = attendance_analysis.get("alerts", [])
+                for alert in alerts:
+                    if alert:
+                        await self.mojo_client.send_message(
+                            student['id'], 
+                            f"⚠️ Attendance Alert:\n{alert}",
+                            "alert"
+                        )
+        except Exception as e:
+            logger.error(f"Error checking attendance alerts: {e}")
+    
+    async def _check_homework_alerts(self):
+        """Check for homework completion issues and send alerts"""
+        logger.info("Checking homework completion...")
+        try:
+            students = await self.mojo_client.get_students()
+            
+            for student in students:
+                # Analyze homework completion
+                homework_analysis = await self.analysis_service.analyze_homework_completion(
+                    student['id'], 
+                    days=7
+                )
+                
+                # Send alerts if any overdue homework
+                alerts = homework_analysis.get("alerts", [])
+                for alert in alerts:
+                    if alert:
+                        await self.mojo_client.send_message(
+                            student['id'], 
+                            f"📚 Homework Alert:\n{alert}",
+                            "alert"
+                        )
+        except Exception as e:
+            logger.error(f"Error checking homework alerts: {e}")
