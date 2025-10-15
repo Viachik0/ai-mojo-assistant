@@ -6,6 +6,7 @@ from app.core.config import settings
 from app.services.scheduler import SchedulerService
 from app.integrations.mojo_client import MojoClient
 from app.core.database import engine, Base
+from app.api.endpoints import users, students, teachers, grades, attendance, homework, lessons, analytics
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,6 +26,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include API routers
+app.include_router(users.router, prefix="/api")
+app.include_router(students.router, prefix="/api")
+app.include_router(teachers.router, prefix="/api")
+app.include_router(grades.router, prefix="/api")
+app.include_router(attendance.router, prefix="/api")
+app.include_router(homework.router, prefix="/api")
+app.include_router(lessons.router, prefix="/api")
+app.include_router(analytics.router, prefix="/api")
 
 mojo_client = None
 scheduler = None
