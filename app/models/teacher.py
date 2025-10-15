@@ -1,7 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from app.models.base import Base
-from app.models.user import User
 
 class Teacher(Base):
     __tablename__ = "teachers"
