@@ -1,6 +1,8 @@
 # FastAPI
 fastapi
 uvicorn[standard]
+httpx
+aiohttp
 
 # Database
 sqlalchemy
