@@ -18,9 +18,6 @@ class User(Base):
 
     # Relationships
     grades = relationship("Grade", back_populates="user")
-
-    # Relationship to student model
-    student_profile = relationship("Student", back_populates="user", uselist=False)
-
+    
     def __repr__(self):
         return f"<User(name={self.name}, email={self.email}, role={self.role})>"
