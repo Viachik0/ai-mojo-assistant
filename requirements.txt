@@ -16,3 +16,6 @@ pydantic-settings
 
 # For async tasks
 celery
+
+# Testing
+pytest
