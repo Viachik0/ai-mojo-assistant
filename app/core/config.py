@@ -10,6 +10,8 @@ class Settings:
     
     # AI Configuration
     DEEPSEEK_API_URL = os.getenv("DEEPSEEK_API_URL", "http://localhost:8001/v1")
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+    OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
     
     # Application Settings
     CHECK_INTERVAL_MINUTES = int(os.getenv("CHECK_INTERVAL_MINUTES", "60"))
