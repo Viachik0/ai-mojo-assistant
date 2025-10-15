@@ -1,10 +1,10 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
 
 
 class TeacherBase(BaseModel):
     user_id: int
-    subjects: List[str] = Field(..., min_items=1)
+    subjects: List[str] = Field(..., min_length=1)
 
 
 class TeacherCreate(TeacherBase):
@@ -12,14 +12,13 @@ class TeacherCreate(TeacherBase):
 
 
 class TeacherUpdate(BaseModel):
-    subjects: Optional[List[str]] = Field(None, min_items=1)
+    subjects: Optional[List[str]] = Field(None, min_length=1)
 
 
 class TeacherResponse(TeacherBase):
     id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TeacherListResponse(BaseModel):

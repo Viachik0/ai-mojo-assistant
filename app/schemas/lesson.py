@@ -25,8 +25,8 @@ class LessonUpdate(BaseModel):
 class LessonResponse(LessonBase):
     id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+        
 
 
 class LessonListResponse(BaseModel):
