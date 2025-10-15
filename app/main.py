@@ -48,6 +48,8 @@ async def startup_event():
 async def shutdown_event():
     if scheduler:
         await scheduler.stop()
+    if mojo_client:
+        await mojo_client.close()
     logger.info("AI Mojo Assistant stopped")
 
 @app.get("/")
