@@ -13,51 +13,102 @@ class MojoClient:
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
         }
+        self.session = None
+
+    async def _get_session(self):
+        if self.session is None:
+            self.session = aiohttp.ClientSession(headers=self.headers)
+        return self.session
+
+    async def close(self):
+        if self.session:
+            await self.session.close()
+            self.session = None
     
     async def get_teachers(self) -> List[Dict]:
         """Get list of teachers"""
-        # Mock implementation - replace with actual API call
-        return [
-            {"id": "1", "name": "Maria Ivanova", "subjects": ["Mathematics", "Physics"]},
-            {"id": "2", "name": "Alexey Petrov", "subjects": ["History"]}
-        ]
+        try:
+            session = await self._get_session()
+            async with session.get(f"{self.base_url}/api/teachers") as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return data.get("teachers", [])
+                else:
+                    logger.error(f"Failed to get teachers: {response.status} - {await response.text()}")
+                    return []
+        except Exception as e:
+            logger.error(f"Error getting teachers: {e}")
+            return []
     
     async def get_students(self, class_id: Optional[str] = None) -> List[Dict]:
         """Get list of students"""
-        return [
-            {"id": "1", "name": "Ivan Sidorov", "class": "5A"},
-            {"id": "2", "name": "Anna Kuznetsova", "class": "5A"}
-        ]
+        try:
+            session = await self._get_session()
+            url = f"{self.base_url}/api/students"
+            if class_id:
+                url += f"?class_id={class_id}"
+            async with session.get(url) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return data.get("students", [])
+                else:
+                    logger.error(f"Failed to get students: {response.status} - {await response.text()}")
+                    return []
+        except Exception as e:
+            logger.error(f"Error getting students: {e}")
+            return []
     
     async def get_grades(self, teacher_id: str, days: int = 7) -> List[Dict]:
         """Get grades for the last N days"""
-        return [
-            {
-                "id": "1", 
-                "student_id": "1", 
-                "subject": "Mathematics", 
-                "grade": "5",
-                "date": "2024-01-15",
-                "lesson_topic": "Fractions"
-            }
-        ]
+        try:
+            session = await self._get_session()
+            url = f"{self.base_url}/api/grades?teacher_id={teacher_id}&days={days}"
+            async with session.get(url) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return data.get("grades", [])
+                else:
+                    logger.error(f"Failed to get grades: {response.status} - {await response.text()}")
+                    return []
+        except Exception as e:
+            logger.error(f"Error getting grades: {e}")
+            return []
     
     async def get_missing_grades(self, teacher_id: str) -> List[Dict]:
         """Get lessons without grades"""
-        return [
-            {
-                "lesson_date": "2024-01-16",
-                "subject": "Mathematics", 
-                "class": "5A",
-                "students_count": 25
-            }
-        ]
+        try:
+            session = await self._get_session()
+            url = f"{self.base_url}/api/missing-grades?teacher_id={teacher_id}"
+            async with session.get(url) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return data.get("missing_grades", [])
+                else:
+                    logger.error(f"Failed to get missing grades: {response.status} - {await response.text()}")
+                    return []
+        except Exception as e:
+            logger.error(f"Error getting missing grades: {e}")
+            return []
     
     async def send_message(self, recipient_id: str, message: str, message_type: str = "notification") -> bool:
         """Send message through Mojo"""
-        logger.info(f"Sending message to {recipient_id}: {message}")
-        # Mock implementation - replace with actual API call
-        return True
+        try:
+            session = await self._get_session()
+            payload = {
+                "recipient_id": recipient_id,
+                "message": message,
+                "type": message_type
+            }
+            async with session.post(f"{self.base_url}/api/messages", json=payload) as response:
+                if response.status in [200, 201]:
+                    logger.info(f"Message sent to {recipient_id}: {message}")
+                    return True
+                else:
+                    logger.error(f"Failed to send message: {response.status} - {await response.text()}")
+                    return False
+        except Exception as e:
+            logger.error(f"Error sending message: {e}")
+            return False
     
     async def send_teacher_alert(self, teacher_id: str, alert_data: Dict) -> bool:
         """Send notification to teacher"""
