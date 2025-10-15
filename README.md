@@ -1,72 +1,55 @@
-# AI Mojo Assistant
+# AI-Mojo Assistant
 
-[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+AI-ассистент завуча для Группы школ "Корифей", интегрированный с платформой Mojo.education.
 
-Backend service for AI-powered educational analytics and automated messaging integrated with Mojo.education.
+## Описание
 
-## Features
+Этот проект представляет собой бэкенд-сервис на FastAPI, который выполняет следующие задачи:
+- Интегрируется с API Mojo.education для получения данных об оценках, учениках и учителях.
+- Анализирует данные с помощью LLM (DeepSeek R-1) для выявления проблемных зон.
+- Автоматически генерирует отчеты и уведомления для учителей, родителей, учеников и администрации.
+- Использует PostgreSQL для хранения данных и Redis для кэширования.
 
-- 📊 Automated grading timeliness monitoring
-- 📈 Weekly performance reports for parents
-- 🤖 AI-powered analysis using DeepSeek LLM
-- 🔔 Smart notifications through Mojo.education
-- ⏰ Scheduled tasks and analytics
+## Установка и запуск
 
-## Quick Start
+1.  **Клонируйте репозиторий:**
+    ```bash
+    git clone https://github.com/Viachik0/ai-mojo-assistant.git
+    cd ai-mojo-assistant
+    ```
 
-```bash
-# Clone repository
-git clone https://github.com/yourusername/ai-mojo-assistant
-cd ai-mojo-assistant
+2.  **Создайте и активируйте виртуальное окружение:**
+    ```bash
+    python -m venv venv
+    source venv/bin/activate  # для Linux/macOS
+    # venv\Scripts\activate    # для Windows
+    ```
 
-# Setup environment
-cp .env.example .env
-# Edit .env with your Mojo API credentials
+3.  **Установите зависимости:**
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-# Run with Docker
-docker-compose up -d
+4.  **Настройте переменные окружения:**
+    - Скопируйте файл `.env.example` в `.env`:
+      ```bash
+      cp .env.example .env
+      ```
+    - Откройте файл `.env` и укажите свои данные для подключения к PostgreSQL и Redis.
 
-# Or run locally
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-```
+5.  **Запустите приложение:**
+    ```bash
+    uvicorn src.main:app --reload
+    ```
+    Приложение будет доступно по адресу `http://127.0.0.1:8000`.
 
-## API Documentation
+## Структура проекта
 
-Once running, visit:
-
-API Docs: http://localhost:8000/docs
-Health Check: http://localhost:8000/health
-
-## Configuration
-
-Set these environment variables:
-
-MOJO_API_KEY: Your Mojo.education API key
-MOJO_BASE_URL: Mojo API base URL
-DEEPSEEK_API_URL: DeepSeek LLM endpoint
-DATABASE_URL: PostgreSQL connection string
-
-## Development
-
-```bash
-# Setup virtual environment
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# venv\Scripts\activate  # Windows
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run tests
-pytest
-
-# Start development server
-uvicorn app.main:app --reload
-```
-
-## License
-
-MIT License - see LICENSE file for details.
+-   `src/main.py`: Главный файл FastAPI.
+-   `src/core/`: Настройки конфигурации.
+-   `src/db/`: Модули для работы с базой данных (SQLAlchemy).
+-   `src/cache/`: Модули для работы с кэшем (Redis).
+-   `src/api/`: API-роутеры и эндпоинты.
+-   `src/services/`: Бизнес-логика и интеграции со сторонними сервисами.
+-   `requirements.txt`: Список зависимостей.
+-   `.env.example`: Шаблон для переменных окружения.
