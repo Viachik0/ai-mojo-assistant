@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text
+from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -13,7 +13,6 @@ class Lesson(Base):
     teacher_id = Column(Integer, ForeignKey('users.id'), nullable=False)
 
     teacher = relationship("User")
-    grades = relationship("Grade", back_populates="lesson")
 
     def __repr__(self):
         return f"<Lesson(subject={{self.subject}}, date={{self.date}})>"
