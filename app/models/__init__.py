@@ -1,1 +1,1 @@
-# Empty init file
+from app.core.database import Base
