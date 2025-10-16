@@ -9,11 +9,13 @@ Backend service for AI-powered educational analytics and automated messaging int
 ## Features
 
 - 📊 **Comprehensive Analytics**
+  - Automated grading timeliness monitoring
   - Grade trend analysis across all subjects
   - Attendance pattern monitoring
   - Homework completion tracking
   
 - 🤖 **AI-Powered Insights**
+  - AI-powered analysis using DeepSeek LLM
   - OpenAI-powered performance insights
   - Intelligent alerts for concerning patterns
   - Personalized recommendations for teachers and parents

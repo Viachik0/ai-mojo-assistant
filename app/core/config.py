@@ -21,6 +21,10 @@ class Settings:
     # Database
     DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/mojo_assistant")
     
+    # Convert postgresql:// to postgresql+asyncpg:// for async support
+    if DATABASE_URL and DATABASE_URL.startswith("postgresql://"):
+        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+    
     # Security
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
 

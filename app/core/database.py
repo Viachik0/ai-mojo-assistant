@@ -7,7 +7,7 @@ from app.core.config import settings
 Base = declarative_base()
 
 # Async engine setup
-engine = sa_asyncio.create_async_engine(settings.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://"), echo=True)
+engine = sa_asyncio.create_async_engine(settings.DATABASE_URL, echo=True)
 
 # Async session setup
 AsyncSession = sessionmaker(engine, class_=sa_asyncio.AsyncSession, expire_on_commit=False)
