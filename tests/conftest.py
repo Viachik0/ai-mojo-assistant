@@ -1,6 +1,9 @@
 import pytest
 import sys
+import os
 from unittest.mock import Mock, MagicMock
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Mock SQLAlchemy modules before any imports
 mock_sa = MagicMock()
