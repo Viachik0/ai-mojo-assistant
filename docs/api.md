@@ -28,7 +28,7 @@
 
 ## AI Features
 
-The analytics service uses OpenAI API to generate:
+The analytics service uses vLLM (DeepSeek) API to generate:
 
 1. **Performance Insights**: AI-analyzed summaries of student performance
 2. **Smart Alerts**: Contextual alerts for attendance, grades, and homework issues

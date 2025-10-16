@@ -72,9 +72,10 @@ New REST API endpoints for analytics:
 - Updated `.env.example` with new environment variables
 
 ### 8. Dependencies
-- Added `openai==1.3.5` to requirements.txt (for vLLM OpenAI-compatible API)
+- Using vLLM for AI capabilities (OpenAI-compatible API)
 - Added `asyncpg==0.29.0` for PostgreSQL async support
-- Removed `aiosqlite` dependency
+- Using `psycopg2-binary==2.9.9` for PostgreSQL support
+- Removed `aiosqlite` dependency (migrated from SQLite to PostgreSQL)
 
 ### 9. Tests
 Created comprehensive test suites:
