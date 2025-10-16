@@ -1,38 +1,24 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 import asyncio
 import logging
 from app.core.config import settings
 from app.services.scheduler import SchedulerService
 from app.integrations.mojo_client import MojoClient
 from app.core.database import engine, Base
+from app.api.endpoints import users, students, teachers, grades, attendance, homework, lessons, analytics
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(
-    title="AI Mojo Assistant API",
-    description="Backend service for AI-powered educational analytics",
-    version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc"
-)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-mojo_client = None
-scheduler = None
-
-@app.on_event("startup")
-async def startup_event():
-    global mojo_client, scheduler
-    
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Lifespan context manager for startup and shutdown events.
+    """
+    # Startup
     logger.info("Starting AI Mojo Assistant...")
     
     # Create database tables
@@ -48,14 +34,43 @@ async def startup_event():
     await scheduler.start()
     
     logger.info("AI Mojo Assistant started successfully")
-
-@app.on_event("shutdown")
-async def shutdown_event():
+    
+    yield
+    
+    # Shutdown
     if scheduler:
         await scheduler.stop()
     if mojo_client:
         await mojo_client.close()
     logger.info("AI Mojo Assistant stopped")
+
+
+app = FastAPI(
+    title="AI Mojo Assistant API",
+    description="Backend service for AI-powered educational analytics",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    lifespan=lifespan
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include API routers
+app.include_router(users.router, prefix="/api")
+app.include_router(students.router, prefix="/api")
+app.include_router(teachers.router, prefix="/api")
+app.include_router(grades.router, prefix="/api")
+app.include_router(attendance.router, prefix="/api")
+app.include_router(homework.router, prefix="/api")
+app.include_router(lessons.router, prefix="/api")
+app.include_router(analytics.router, prefix="/api")
 
 @app.get("/")
 async def root():

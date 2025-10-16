@@ -182,9 +182,9 @@ homework = await db_service.get_homework_completion_rate(student_id=1, days=14)
 Add these environment variables to your `.env` file:
 
 ```bash
-# OpenAI Configuration (Required for AI insights)
-OPENAI_API_KEY=sk-...your-key-here...
-OPENAI_MODEL=gpt-3.5-turbo
+# vLLM Configuration (Required for AI insights)
+VLLM_API_BASE=http://localhost:8001/v1
+LLM_MODEL_NAME=deepseek-chat
 
 # Mojo.education API
 MOJO_API_KEY=your_mojo_api_key
@@ -231,7 +231,7 @@ HTTP Status Codes:
 
 ## Next Steps
 
-1. Configure OpenAI API key for AI-powered insights
+1. Configure vLLM server endpoint and model for AI-powered insights
 2. Test endpoints using the examples above
 3. Monitor scheduled tasks in logs
 4. Customize alert thresholds in the code if needed

@@ -34,7 +34,7 @@ Extended with new analytical functions:
   - `_identify_improvements()`: Identify areas needing improvement
 
 ### 3. AI-Powered LLM Service (`app/services/llm_service.py`)
-Integrated OpenAI API for intelligent insights:
+Integrated vLLM (DeepSeek) API for intelligent insights:
 
 - **AI Capabilities**
   - `analyze_performance()`: AI-generated performance summaries for parents
@@ -68,11 +68,14 @@ New REST API endpoints for analytics:
 - `POST /analytics/student/{student_id}/comprehensive?days=30`
 
 ### 7. Configuration Updates
-- Added OpenAI API configuration (`OPENAI_API_KEY`, `OPENAI_MODEL`)
+- Added vLLM API configuration (`VLLM_API_BASE`, `LLM_MODEL_NAME`)
 - Updated `.env.example` with new environment variables
 
 ### 8. Dependencies
-- Added `openai==1.3.5` to requirements.txt
+- Using vLLM for AI capabilities (OpenAI-compatible API)
+- Added `asyncpg==0.29.0` for PostgreSQL async support
+- Using `psycopg2-binary==2.9.9` for PostgreSQL support
+- Removed `aiosqlite` dependency (migrated from SQLite to PostgreSQL)
 
 ### 9. Tests
 Created comprehensive test suites:
@@ -112,7 +115,7 @@ Created comprehensive test suites:
         ▼                   ▼
 ┌───────────────┐   ┌──────────────────────────┐
 │  Database     │   │    LLM Service           │
-│  Service      │   │  (OpenAI Integration)    │
+│  Service      │   │  (vLLM Integration)      │
 │  (Data Query) │   │  (AI Insights)           │
 └───────────────┘   └──────────────────────────┘
         │                   │
@@ -126,7 +129,7 @@ Created comprehensive test suites:
 ## Key Benefits
 
 1. **Comprehensive Analytics**: Tracks grades, attendance, and homework in one system
-2. **AI-Powered Insights**: Uses OpenAI to generate meaningful, actionable insights
+2. **AI-Powered Insights**: Uses vLLM (DeepSeek) to generate meaningful, actionable insights
 3. **Automated Monitoring**: Scheduled tasks ensure timely alerts and reports
 4. **Flexible API**: RESTful endpoints allow external integrations
 5. **Well-Tested**: 26 tests ensure reliability and correctness

@@ -9,12 +9,13 @@ Backend service for AI-powered educational analytics and automated messaging int
 ## Features
 
 - 📊 **Comprehensive Analytics**
+  - Automated grading timeliness monitoring
   - Grade trend analysis across all subjects
   - Attendance pattern monitoring
   - Homework completion tracking
   
 - 🤖 **AI-Powered Insights**
-  - OpenAI-powered performance insights
+  - AI-powered analysis using DeepSeek LLM via vLLM
   - Intelligent alerts for concerning patterns
   - Personalized recommendations for teachers and parents
   
@@ -83,9 +84,8 @@ Set these environment variables in your `.env` file:
 - `MOJO_BASE_URL`: Mojo API base URL (default: https://mojo.education/api)
 
 **AI Configuration:**
-- `OPENAI_API_KEY`: Your OpenAI API key for AI-powered insights
-- `OPENAI_MODEL`: OpenAI model to use (default: gpt-3.5-turbo)
-- `DEEPSEEK_API_URL`: DeepSeek LLM endpoint (optional alternative)
+- `VLLM_API_BASE`: vLLM server endpoint (default: http://localhost:8001/v1)
+- `LLM_MODEL_NAME`: LLM model name (default: deepseek-chat)
 
 **Database:**
 - `DATABASE_URL`: PostgreSQL connection string

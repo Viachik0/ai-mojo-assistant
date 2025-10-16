@@ -7,35 +7,37 @@ logger = logging.getLogger(__name__)
 
 class LLMService:
     def __init__(self):
-        self.api_url = settings.DEEPSEEK_API_URL
-        self.openai_api_key = settings.OPENAI_API_KEY
-        self.openai_model = settings.OPENAI_MODEL
+        self.vllm_api_base = settings.VLLM_API_BASE
+        self.llm_model_name = settings.LLM_MODEL_NAME
     
-    async def _call_openai(self, prompt: str, system_message: str = None) -> str:
-        """Call OpenAI API for generating insights"""
-        if not self.openai_api_key:
-            logger.warning("OpenAI API key not configured, using fallback response")
-            return "AI analysis unavailable. Please configure OpenAI API key."
-        
+    async def _call_vllm(self, prompt: str, system_message: str = None) -> str:
+        """Call vLLM API (OpenAI-compatible) for generating insights"""
         try:
-            import openai
-            openai.api_key = self.openai_api_key
-            
             messages = []
             if system_message:
                 messages.append({"role": "system", "content": system_message})
             messages.append({"role": "user", "content": prompt})
             
-            response = await openai.ChatCompletion.acreate(
-                model=self.openai_model,
-                messages=messages,
-                temperature=0.7,
-                max_tokens=500
-            )
-            
-            return response.choices[0].message.content
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.vllm_api_base}/chat/completions",
+                    json={
+                        "model": self.llm_model_name,
+                        "messages": messages,
+                        "temperature": 0.7,
+                        "max_tokens": 500
+                    },
+                    headers={"Content-Type": "application/json"}
+                ) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        return data["choices"][0]["message"]["content"]
+                    else:
+                        error_text = await response.text()
+                        logger.error(f"Error calling vLLM API: {response.status} - {error_text}")
+                        return "AI analysis unavailable. Please check vLLM server."
         except Exception as e:
-            logger.error(f"Error calling OpenAI API: {e}")
+            logger.error(f"Error calling vLLM API: {e}")
             return f"Error generating AI insights: {str(e)}"
     
     async def analyze_performance(self, grades: List[Dict], student_name: str = "Student") -> Dict:
@@ -61,7 +63,7 @@ Keep the tone positive and constructive."""
         
         system_message = "You are an educational AI assistant helping teachers communicate student progress to parents. Be encouraging, specific, and constructive."
         
-        summary = await self._call_openai(prompt, system_message)
+        summary = await self._call_vllm(prompt, system_message)
         
         return {"message": summary}
     
@@ -88,7 +90,7 @@ Provide specific, actionable insights for improvement."""
         
         system_message = "You are an educational data analyst providing insights to teachers. Be specific and actionable."
         
-        insights = await self._call_openai(prompt, system_message)
+        insights = await self._call_vllm(prompt, system_message)
         
         return {"insights": insights}
     
@@ -112,7 +114,7 @@ Provide specific, actionable insights for improvement."""
         
         system_message = "You are an educational alert system. Be concise, professional, and action-oriented."
         
-        alert = await self._call_openai(prompt, system_message)
+        alert = await self._call_vllm(prompt, system_message)
         
         return {"alert": alert}
     
@@ -131,7 +133,7 @@ Provide actionable recommendations for both teachers and parents."""
         
         system_message = "You are an educational consultant providing personalized recommendations. Be specific and practical."
         
-        recommendations = await self._call_openai(prompt, system_message)
+        recommendations = await self._call_vllm(prompt, system_message)
         
         return {"recommendations": recommendations}
     

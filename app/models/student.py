@@ -1,7 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
-from app.models.base import Base
-from app.models.user import User
+from app.core.database import Base
 
 class Student(Base):
     __tablename__ = "students"
@@ -13,5 +12,3 @@ class Student(Base):
     user = relationship("User", back_populates="student_profile")
 
     grades = relationship("Grade", back_populates="student")
-
-User.student_profile = relationship("Student", back_populates="user", uselist=False)

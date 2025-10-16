@@ -17,7 +17,8 @@ class User(Base):
     role = Column(Enum(Role), nullable=False)
 
     # Relationships
-    grades = relationship("Grade", back_populates="user")
+    student_profile = relationship("Student", back_populates="user", uselist=False)
+    teacher_profile = relationship("Teacher", back_populates="user", uselist=False)
     
     def __repr__(self):
         return f"<User(name={self.name}, email={self.email}, role={self.role})>"

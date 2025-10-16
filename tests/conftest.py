@@ -1,44 +1,80 @@
-import pytest
+import os
 import sys
-from unittest.mock import Mock, MagicMock
+import pytest
+import asyncio
+from fastapi.testclient import TestClient
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
 
-# Mock SQLAlchemy modules before any imports
-mock_sa = MagicMock()
-mock_sa.Column = MagicMock()
-mock_sa.Integer = MagicMock()
-mock_sa.String = MagicMock()
-mock_sa.Float = MagicMock()
-mock_sa.Boolean = MagicMock()
-mock_sa.DateTime = MagicMock()
-mock_sa.Text = MagicMock()
-mock_sa.ForeignKey = MagicMock()
-mock_sa.select = MagicMock()
-mock_sa.func = MagicMock()
-mock_sa.and_ = MagicMock()
-mock_sa.or_ = MagicMock()
+# --- ГЛАВНОЕ ИСПРАВЛЕНИЕ ---
+# Добавляем корень проекта в sys.path ДО импорта любых модулей приложения.
+# Это гарантирует, что Python найдет пакет 'app'.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# -------------------------
 
-sys.modules['sqlalchemy'] = mock_sa
+from app.main import app
+from app.core.database import Base
+from app.core.database import get_db as core_get_db
+from app.api.dependencies import get_db as api_get_db
 
-# Mock SQLAlchemy orm
-mock_sa_orm = MagicMock()
-mock_sa_orm.relationship = MagicMock()
-mock_sa_orm.sessionmaker = MagicMock()
-sys.modules['sqlalchemy.orm'] = mock_sa_orm
+# Используем SQLite в файле для тестирования
+TEST_DB_FILE = "./test.db"
+SQLALCHEMY_DATABASE_URL = f"sqlite+aiosqlite:///{TEST_DB_FILE}"
 
-# Mock SQLAlchemy ext.asyncio
-mock_sa_asyncio = MagicMock()
-mock_sa_asyncio.create_async_engine = MagicMock()
-mock_sa_asyncio.AsyncSession = MagicMock()
-sys.modules['sqlalchemy.ext.asyncio'] = mock_sa_asyncio
+engine = create_async_engine(
+    SQLALCHEMY_DATABASE_URL, echo=False, connect_args={"check_same_thread": False}
+)
+TestingSessionLocal = sessionmaker(
+    engine, class_=AsyncSession, expire_on_commit=False
+)
 
-# Mock declarative base
-from unittest.mock import MagicMock as Base
-mock_declarative_base = MagicMock(return_value=Base)
-sys.modules['sqlalchemy.ext.declarative'] = MagicMock(declarative_base=mock_declarative_base)
+async def override_get_db():
+    """
+    Зависимость, которая предоставляет тестовую сессию БД и закрывает ее после.
+    """
+    async with TestingSessionLocal() as session:
+        yield session
 
-# Mock the database module
-mock_database = MagicMock()
-mock_database.Base = Base
-mock_database.engine = MagicMock()
-mock_database.AsyncSession = MagicMock()
-sys.modules['app.core.database'] = mock_database
+# Переопределяем обе зависимости get_db на нашу тестовую функцию
+app.dependency_overrides[core_get_db] = override_get_db
+app.dependency_overrides[api_get_db] = override_get_db
+
+
+@pytest.fixture(scope="function")
+def event_loop():
+    """Create an instance of the default event loop for each test case."""
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
+
+
+@pytest.fixture(scope="function", autouse=True)
+async def setup_database():
+    """
+    Автоматическая фикстура для настройки БД перед каждым тестом.
+    """
+    # Remove old database if exists
+    if os.path.exists(TEST_DB_FILE):
+        os.remove(TEST_DB_FILE)
+    
+    # Create tables
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    
+    yield
+    
+    # Cleanup
+    await engine.dispose()
+    
+    # Remove database file
+    if os.path.exists(TEST_DB_FILE):
+        os.remove(TEST_DB_FILE)
+
+
+@pytest.fixture(scope="function")
+def client():
+    """
+    Фикстура, которая предоставляет тестовый клиент API.
+    """
+    with TestClient(app) as c:
+        yield c
