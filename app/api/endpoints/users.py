@@ -4,7 +4,7 @@ from typing import List
 
 from app.services.database_service import DatabaseService
 from app.core.database import get_db
-from app.models.schemas import UserCreate, User
+from app.schemas import UserCreate, User  # <--- ИСПРАВЛЕННАЯ СТРОКА
 
 router = APIRouter()
 
