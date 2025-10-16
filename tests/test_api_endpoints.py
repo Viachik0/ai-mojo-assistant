@@ -4,8 +4,8 @@ from app.main import app
 from app.core.database import engine, Base
 import os
 
-# Set database URL to in-memory SQLite for testing
-os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
+# Set database URL to PostgreSQL for testing
+os.environ["DATABASE_URL"] = "postgresql+asyncpg://postgres:password@localhost:5432/mojo_assistant_test"
 
 
 @pytest.fixture(scope="function")
