@@ -8,11 +8,32 @@ Backend service for AI-powered educational analytics and automated messaging int
 
 ## Features
 
-- 📊 Automated grading timeliness monitoring
-- 📈 Weekly performance reports for parents
-- 🤖 AI-powered analysis using DeepSeek LLM
-- 🔔 Smart notifications through Mojo.education
-- ⏰ Scheduled tasks and analytics
+- 📊 **Comprehensive Analytics**
+  - Automated grading timeliness monitoring
+  - Grade trend analysis across all subjects
+  - Attendance pattern monitoring
+  - Homework completion tracking
+  
+- 🤖 **AI-Powered Insights**
+  - AI-powered analysis using DeepSeek LLM
+  - OpenAI-powered performance insights
+  - Intelligent alerts for concerning patterns
+  - Personalized recommendations for teachers and parents
+  
+- 📈 **Automated Reporting**
+  - Weekly performance reports for parents
+  - Daily attendance and homework alerts
+  - Teacher notifications for missing grades
+  
+- 🔔 **Smart Notifications**
+  - Real-time alerts through Mojo.education
+  - Context-aware messaging
+  - Multi-channel communication
+  
+- ⏰ **Scheduled Tasks**
+  - Automated grading timeliness monitoring
+  - Periodic analytics and reporting
+  - Configurable scheduling
 
 ## Quick Start
 
@@ -37,17 +58,47 @@ uvicorn app.main:app --reload
 
 Once running, visit:
 
-API Docs: http://localhost:8000/docs
-Health Check: http://localhost:8000/health
+- **Interactive API Docs**: http://localhost:8000/docs
+- **Health Check**: http://localhost:8000/health
+
+### Key Endpoints
+
+#### Analytics Endpoints
+
+- `POST /analytics/student/{student_id}/grades?days=30` - Analyze grade trends
+- `POST /analytics/student/{student_id}/attendance?days=30` - Analyze attendance patterns
+- `POST /analytics/student/{student_id}/homework?days=30` - Analyze homework completion
+- `POST /analytics/student/{student_id}/comprehensive?days=30` - Generate comprehensive AI report
+
+#### Admin Endpoints
+
+- `POST /analyze-grades` - Trigger manual grade analysis
+
+See [docs/api.md](docs/api.md) for complete API documentation.
 
 ## Configuration
 
-Set these environment variables:
+Set these environment variables in your `.env` file:
 
-MOJO_API_KEY: Your Mojo.education API key
-MOJO_BASE_URL: Mojo API base URL
-DEEPSEEK_API_URL: DeepSeek LLM endpoint
-DATABASE_URL: PostgreSQL connection string
+**Mojo.education API:**
+- `MOJO_API_KEY`: Your Mojo.education API key
+- `MOJO_BASE_URL`: Mojo API base URL (default: https://mojo.education/api)
+
+**AI Configuration:**
+- `OPENAI_API_KEY`: Your OpenAI API key for AI-powered insights
+- `OPENAI_MODEL`: OpenAI model to use (default: gpt-3.5-turbo)
+- `DEEPSEEK_API_URL`: DeepSeek LLM endpoint (optional alternative)
+
+**Database:**
+- `DATABASE_URL`: PostgreSQL connection string
+
+**Application Settings:**
+- `CHECK_INTERVAL_MINUTES`: Frequency of scheduled checks (default: 60)
+- `GRADING_DEADLINE_DAYS`: Days before grading deadline (default: 3)
+- `WEEKLY_REPORT_DAY`: Day for weekly reports (default: monday)
+
+**Security:**
+- `JWT_SECRET_KEY`: Secret key for JWT authentication
 
 ## Development
 
