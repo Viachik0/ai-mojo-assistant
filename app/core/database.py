@@ -11,3 +11,10 @@ engine = sa_asyncio.create_async_engine(settings.DATABASE_URL, echo=True)
 
 # Async session setup
 AsyncSession = sessionmaker(engine, class_=sa_asyncio.AsyncSession, expire_on_commit=False)
+
+async def get_db():
+    """
+    Dependency function that provides a database session.
+    """
+    async with AsyncSession() as session:
+        yield session
