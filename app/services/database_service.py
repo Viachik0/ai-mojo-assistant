@@ -17,7 +17,7 @@ from app.models.homework_submission import HomeworkSubmission
 logger = logging.getLogger(__name__)
 
 class DatabaseService:
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: Optional[AsyncSession] = None):
         self.session = session
 
     # User CRUD
