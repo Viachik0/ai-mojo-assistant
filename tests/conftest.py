@@ -1,8 +1,9 @@
 import os
 import sys
 import pytest
+import asyncio
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 # --- ГЛАВНОЕ ИСПРАВЛЕНИЕ ---
@@ -12,41 +13,68 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 # -------------------------
 
 from app.main import app
-from app.core.database import Base, get_db
+from app.core.database import Base
+from app.core.database import get_db as core_get_db
+from app.api.dependencies import get_db as api_get_db
 
 # Используем SQLite в файле для тестирования
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
+TEST_DB_FILE = "./test.db"
+SQLALCHEMY_DATABASE_URL = f"sqlite+aiosqlite:///{TEST_DB_FILE}"
 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+engine = create_async_engine(
+    SQLALCHEMY_DATABASE_URL, echo=False, connect_args={"check_same_thread": False}
 )
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+TestingSessionLocal = sessionmaker(
+    engine, class_=AsyncSession, expire_on_commit=False
+)
 
-def override_get_db():
+async def override_get_db():
     """
     Зависимость, которая предоставляет тестовую сессию БД и закрывает ее после.
     """
-    try:
-        db = TestingSessionLocal()
-        yield db
-    finally:
-        db.close()
+    async with TestingSessionLocal() as session:
+        yield session
 
-# Переопределяем зависимость get_db на нашу тестовую функцию
-app.dependency_overrides[get_db] = override_get_db
+# Переопределяем обе зависимости get_db на нашу тестовую функцию
+app.dependency_overrides[core_get_db] = override_get_db
+app.dependency_overrides[api_get_db] = override_get_db
+
+
+@pytest.fixture(scope="function")
+def event_loop():
+    """Create an instance of the default event loop for each test case."""
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
+
+
+@pytest.fixture(scope="function", autouse=True)
+async def setup_database():
+    """
+    Автоматическая фикстура для настройки БД перед каждым тестом.
+    """
+    # Remove old database if exists
+    if os.path.exists(TEST_DB_FILE):
+        os.remove(TEST_DB_FILE)
+    
+    # Create tables
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    
+    yield
+    
+    # Cleanup
+    await engine.dispose()
+    
+    # Remove database file
+    if os.path.exists(TEST_DB_FILE):
+        os.remove(TEST_DB_FILE)
+
 
 @pytest.fixture(scope="function")
 def client():
     """
     Фикстура, которая предоставляет тестовый клиент API.
-    Создает и удаляет таблицы БД для каждого теста для полной изоляции.
     """
-    # Удаляем старую БД, если она есть
-    if os.path.exists("./test.db"):
-        os.remove("./test.db")
-    Base.metadata.create_all(bind=engine)
     with TestClient(app) as c:
         yield c
-    Base.metadata.drop_all(bind=engine)
-    if os.path.exists("./test.db"):
-        os.remove("./test.db")

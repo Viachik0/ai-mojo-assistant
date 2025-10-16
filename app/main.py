@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 import asyncio
 import logging
 from app.core.config import settings
@@ -11,12 +12,46 @@ from app.api.endpoints import users, students, teachers, grades, attendance, hom
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Lifespan context manager for startup and shutdown events.
+    """
+    # Startup
+    logger.info("Starting AI Mojo Assistant...")
+    
+    # Create database tables
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    
+    mojo_client = MojoClient(
+        base_url=settings.MOJO_BASE_URL,
+        api_key=settings.MOJO_API_KEY
+    )
+    
+    scheduler = SchedulerService(mojo_client)
+    await scheduler.start()
+    
+    logger.info("AI Mojo Assistant started successfully")
+    
+    yield
+    
+    # Shutdown
+    if scheduler:
+        await scheduler.stop()
+    if mojo_client:
+        await mojo_client.close()
+    logger.info("AI Mojo Assistant stopped")
+
+
 app = FastAPI(
     title="AI Mojo Assistant API",
     description="Backend service for AI-powered educational analytics",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    lifespan=lifespan
 )
 
 app.add_middleware(
@@ -36,37 +71,6 @@ app.include_router(attendance.router, prefix="/api")
 app.include_router(homework.router, prefix="/api")
 app.include_router(lessons.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
-
-mojo_client = None
-scheduler = None
-
-@app.on_event("startup")
-async def startup_event():
-    global mojo_client, scheduler
-    
-    logger.info("Starting AI Mojo Assistant...")
-    
-    # Create database tables
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    
-    mojo_client = MojoClient(
-        base_url=settings.MOJO_BASE_URL,
-        api_key=settings.MOJO_API_KEY
-    )
-    
-    scheduler = SchedulerService(mojo_client)
-    await scheduler.start()
-    
-    logger.info("AI Mojo Assistant started successfully")
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    if scheduler:
-        await scheduler.stop()
-    if mojo_client:
-        await mojo_client.close()
-    logger.info("AI Mojo Assistant stopped")
 
 @app.get("/")
 async def root():

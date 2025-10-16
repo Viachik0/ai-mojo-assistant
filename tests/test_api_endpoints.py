@@ -1,30 +1,15 @@
 import pytest
 from httpx import AsyncClient, ASGITransport
 from app.main import app
-from app.core.database import engine, Base
-import os
-
-# Set database URL to PostgreSQL for testing
-os.environ["DATABASE_URL"] = "postgresql+asyncpg://postgres:password@localhost:5432/mojo_assistant_test"
-
-
-@pytest.fixture(scope="function")
-async def setup_database():
-    """Setup database before each test"""
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    yield
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
 
 
 @pytest.mark.asyncio
-async def test_create_user(setup_database):
+async def test_create_user():
     """Test creating a user"""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         response = await ac.post(
-            "/api/users/",
+            "/api/users",
             json={"name": "Test User", "email": "test@example.com", "role": "student"}
         )
     print(f"Response status: {response.status_code}")
@@ -38,11 +23,11 @@ async def test_create_user(setup_database):
 
 
 @pytest.mark.asyncio
-async def test_list_users(setup_database):
+async def test_list_users():
     """Test listing users"""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        response = await ac.get("/api/users/")
+        response = await ac.get("/api/users")
     assert response.status_code == 200
     data = response.json()
     assert "users" in data
@@ -52,13 +37,13 @@ async def test_list_users(setup_database):
 
 
 @pytest.mark.asyncio
-async def test_get_user(setup_database):
+async def test_get_user():
     """Test getting a specific user"""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         # First create a user
         create_response = await ac.post(
-            "/api/users/",
+            "/api/users",
             json={"name": "Test User 2", "email": "test2@example.com", "role": "teacher"}
         )
         assert create_response.status_code == 201
@@ -73,7 +58,7 @@ async def test_get_user(setup_database):
 
 
 @pytest.mark.asyncio
-async def test_analytics_summary(setup_database):
+async def test_analytics_summary():
     """Test analytics summary endpoint"""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
