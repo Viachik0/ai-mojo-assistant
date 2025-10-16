@@ -18,6 +18,6 @@ class User(Base):
 
     # Relationships
     grades = relationship("Grade", back_populates="user")
-
+    
     def __repr__(self):
         return f"<User(name={self.name}, email={self.email}, role={self.role})>"
