@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
 from app.services.database_service import DatabaseService
-from app.models.database import get_db
+from app.core.database import get_db
 from app.models.schemas import UserCreate, User
 
 router = APIRouter()
