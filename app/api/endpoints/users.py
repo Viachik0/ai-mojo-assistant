@@ -4,11 +4,11 @@ from typing import List
 
 from app.services.database_service import DatabaseService
 from app.core.database import get_db
-from app.schemas.user import User, UserCreate
+from app.schemas.user import UserResponse, UserCreate
 
 router = APIRouter()
 
-@router.post("/", response_model=User)
+@router.post("/", response_model=UserResponse)
 async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
     """
     Create a new user.
@@ -19,7 +19,7 @@ async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Email already registered")
     return created_user
 
-@router.get("/", response_model=List[User])
+@router.get("/", response_model=List[UserResponse])
 async def list_users(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
     """
     Retrieve users.
@@ -28,7 +28,7 @@ async def list_users(skip: int = 0, limit: int = 100, db: AsyncSession = Depends
     users = await db_service.get_users(skip=skip, limit=limit)
     return users
 
-@router.get("/{user_id}", response_model=User)
+@router.get("/{user_id}", response_model=UserResponse)
 async def get_user(user_id: int, db: AsyncSession = Depends(get_db)):
     """
     Get a single user by ID.
