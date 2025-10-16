@@ -1,16 +1,17 @@
 import logging
-from typing import List, Dict
+from typing import List, Dict, Optional
 from app.integrations.mojo_client import MojoClient
 from app.services.llm_service import LLMService
 from app.services.database_service import DatabaseService
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
 class AnalysisService:
-    def __init__(self, mojo_client: MojoClient):
+    def __init__(self, mojo_client: MojoClient, session: Optional[AsyncSession] = None):
         self.mojo_client = mojo_client
         self.llm_service = LLMService()
-        self.db_service = DatabaseService()
+        self.db_service = DatabaseService(session)
     
     async def check_missing_grades(self):
         """Check for teachers with missing grades and send alerts"""
