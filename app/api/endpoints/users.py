@@ -4,7 +4,7 @@ from typing import List
 
 from app.services.database_service import DatabaseService
 from app.core.database import get_db
-from app.schemas.user import UserCreate, User  
+from app.schemas.user import User, UserCreate
 
 router = APIRouter()
 
@@ -14,6 +14,8 @@ async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
     Create a new user.
     """
     db_service = DatabaseService(db)
+    # The create_user service likely returns a SQLAlchemy model.
+    # Pydantic will automatically convert it based on the response_model.
     created_user = await db_service.create_user(user)
     if not created_user:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -34,7 +36,7 @@ async def get_user(user_id: int, db: AsyncSession = Depends(get_db)):
     Get a single user by ID.
     """
     db_service = DatabaseService(db)
-    db_user = await db_service.get_user(user_id=user_id)
+    db_user = await db_service.get_user_by_id(user_id=user_id) # Corrected function name
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return db_user
