@@ -1,9 +1,13 @@
 import httpx
 import logging
-from typing import List, Dict, Optional
+from typing import Union, Iterable, List, Dict, Optional
+from contextlib import asynccontextmanager
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+# Module-level client instance
+_mojo_client: Optional[httpx.AsyncClient] = None
 
 
 class MojoService:
@@ -20,43 +24,56 @@ class MojoService:
         self.base_url = settings.MOJO_API_BASE_URL
         self.api_token = settings.MOJO_API_TOKEN
     
-    async def send_message(self, user_id: int, text: str) -> bool:
+    async def send_message(
+        self, 
+        user_ids: Union[int, Iterable[int]], 
+        text: str, 
+        title: str = "AI-Ассистент"
+    ) -> bool:
         """
-        Send a message to a user through Mojo API
+        Send a message to one or multiple users through Mojo API
         
         Args:
-            user_id: The ID of the user to send the message to
+            user_ids: The ID(s) of the user(s) to send the message to (single int or iterable)
             text: The message text to send
+            title: The message title (default: "AI-Ассистент")
             
         Returns:
             bool: True if message was sent successfully, False otherwise
         """
         try:
+            # Normalize user_ids to a list
+            if isinstance(user_ids, int):
+                user_ids_list = [user_ids]
+            else:
+                user_ids_list = list(user_ids)
+            
             headers = {
                 "Authorization": f"Bearer {self.api_token}",
                 "Content-Type": "application/json"
             }
             
             payload = {
-                "user_id": user_id,
+                "userIds": user_ids_list,
+                "title": title,
                 "text": text
             }
             
             response = await self.client.post(
-                f"{self.base_url}/messages",
+                f"{self.base_url}/api/messaging/message",
                 json=payload,
                 headers=headers
             )
+            response.raise_for_status()
             
-            if response.status_code in [200, 201]:
-                logger.info(f"Message sent successfully to user {user_id}")
-                return True
-            else:
-                logger.error(f"Failed to send message: {response.status_code} - {response.text}")
-                return False
+            logger.info(f"Message sent successfully to users {user_ids_list}")
+            return True
                 
+        except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP error sending message: {e.response.status_code} - {e.response.text}")
+            return False
         except Exception as e:
-            logger.error(f"Error sending message to user {user_id}: {e}")
+            logger.error(f"Error sending message: {e}")
             return False
     
     async def get_students(self, class_id: Optional[int] = None) -> List[Dict]:
@@ -69,9 +86,25 @@ class MojoService:
         Returns:
             List of student dictionaries
         """
-        # TODO: Implement when API endpoint is available
-        logger.warning("get_students method is not yet implemented")
-        return []
+        raise NotImplementedError("get_students is not yet implemented")
+    
+    async def get_teachers(self) -> List[Dict]:
+        """
+        Get list of teachers from Mojo API
+        
+        Returns:
+            List of teacher dictionaries
+        """
+        raise NotImplementedError("get_teachers is not yet implemented")
+    
+    async def get_subjects(self) -> List[Dict]:
+        """
+        Get list of subjects from Mojo API
+        
+        Returns:
+            List of subject dictionaries
+        """
+        raise NotImplementedError("get_subjects is not yet implemented")
     
     async def get_grades(self, student_id: Optional[int] = None, days: Optional[int] = None) -> List[Dict]:
         """
@@ -84,9 +117,7 @@ class MojoService:
         Returns:
             List of grade dictionaries
         """
-        # TODO: Implement when API endpoint is available
-        logger.warning("get_grades method is not yet implemented")
-        return []
+        raise NotImplementedError("get_grades is not yet implemented")
     
     async def get_attendance(self, student_id: Optional[int] = None, days: Optional[int] = None) -> List[Dict]:
         """
@@ -99,9 +130,7 @@ class MojoService:
         Returns:
             List of attendance dictionaries
         """
-        # TODO: Implement when API endpoint is available
-        logger.warning("get_attendance method is not yet implemented")
-        return []
+        raise NotImplementedError("get_attendance is not yet implemented")
     
     async def get_homework(self, student_id: Optional[int] = None) -> List[Dict]:
         """
@@ -113,20 +142,41 @@ class MojoService:
         Returns:
             List of homework dictionaries
         """
-        # TODO: Implement when API endpoint is available
-        logger.warning("get_homework method is not yet implemented")
-        return []
+        raise NotImplementedError("get_homework is not yet implemented")
+
+
+@asynccontextmanager
+async def mojo_service_lifespan():
+    """
+    Context manager for MojoService lifecycle management.
+    Creates and manages the httpx.AsyncClient for the service.
+    """
+    global _mojo_client
     
-    async def get_lessons(self, class_id: Optional[int] = None) -> List[Dict]:
-        """
-        Get lessons from Mojo API
-        
-        Args:
-            class_id: Optional class ID to filter lessons
-            
-        Returns:
-            List of lesson dictionaries
-        """
-        # TODO: Implement when API endpoint is available
-        logger.warning("get_lessons method is not yet implemented")
-        return []
+    _mojo_client = httpx.AsyncClient(
+        base_url=settings.MOJO_API_BASE_URL,
+        headers={"Authorization": f"Bearer {settings.MOJO_API_TOKEN}"}
+    )
+    
+    try:
+        yield
+    finally:
+        if _mojo_client:
+            await _mojo_client.aclose()
+            _mojo_client = None
+
+
+async def get_mojo_service() -> MojoService:
+    """
+    FastAPI dependency for getting MojoService instance.
+    
+    Returns:
+        MojoService: Configured service instance
+    
+    Raises:
+        RuntimeError: If called outside of lifespan context
+    """
+    if _mojo_client is None:
+        raise RuntimeError("MojoService client not initialized. Use mojo_service_lifespan context manager.")
+    
+    return MojoService(_mojo_client)
