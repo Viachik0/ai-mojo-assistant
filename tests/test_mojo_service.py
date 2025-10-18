@@ -1,13 +1,23 @@
 import pytest
-from unittest.mock import AsyncMock, patch
 import httpx
 from app.services.mojo_service import MojoService
+
+
+def mock_handler_success(request: httpx.Request) -> httpx.Response:
+    """Mock handler that returns 200 OK"""
+    return httpx.Response(200, json={"status": "ok"})
+
+
+def mock_handler_unauthorized(request: httpx.Request) -> httpx.Response:
+    """Mock handler that returns 401 Unauthorized"""
+    return httpx.Response(401, json={"error": "Unauthorized"})
 
 
 @pytest.mark.asyncio
 async def test_mojo_service_initialization():
     """Test that MojoService can be initialized with httpx.AsyncClient"""
-    async with httpx.AsyncClient() as client:
+    transport = httpx.MockTransport(mock_handler_success)
+    async with httpx.AsyncClient(transport=transport) as client:
         service = MojoService(client)
         assert service is not None
         assert service.client is not None
@@ -17,108 +27,171 @@ async def test_mojo_service_initialization():
 
 @pytest.mark.asyncio
 async def test_send_message_success():
-    """Test successful message sending"""
-    mock_response = AsyncMock()
-    mock_response.status_code = 200
-    mock_response.text = "OK"
+    """Test successful message sending with single user_id"""
+    def handler(request: httpx.Request) -> httpx.Response:
+        # Verify the request
+        assert request.method == "POST"
+        assert "/api/messaging/message" in str(request.url)
+        assert "Authorization" in request.headers
+        assert request.headers["Authorization"].startswith("Bearer ")
+        
+        # Parse and verify payload
+        import json
+        payload = json.loads(request.content)
+        assert payload["userIds"] == [123]
+        assert payload["text"] == "Test message"
+        assert payload["title"] == "AI-Ассистент"
+        
+        return httpx.Response(200, json={"status": "ok"})
     
-    async with httpx.AsyncClient() as client:
-        with patch.object(client, 'post', return_value=mock_response) as mock_post:
-            service = MojoService(client)
-            result = await service.send_message(user_id=123, text="Test message")
-            
-            assert result is True
-            mock_post.assert_called_once()
-            
-            # Verify the call was made with correct parameters
-            call_args = mock_post.call_args
-            assert "/messages" in str(call_args)
-            assert call_args.kwargs["json"]["user_id"] == 123
-            assert call_args.kwargs["json"]["text"] == "Test message"
-            assert "Authorization" in call_args.kwargs["headers"]
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        service = MojoService(client)
+        result = await service.send_message(user_ids=123, text="Test message")
+        
+        assert result is True
 
 
 @pytest.mark.asyncio
-async def test_send_message_failure():
-    """Test message sending failure"""
-    mock_response = AsyncMock()
-    mock_response.status_code = 500
-    mock_response.text = "Internal Server Error"
+async def test_send_message_success_multiple_users():
+    """Test successful message sending with multiple user_ids"""
+    def handler(request: httpx.Request) -> httpx.Response:
+        # Verify the request
+        assert request.method == "POST"
+        assert "/api/messaging/message" in str(request.url)
+        
+        # Parse and verify payload
+        import json
+        payload = json.loads(request.content)
+        assert payload["userIds"] == [123, 456, 789]
+        assert payload["text"] == "Test message"
+        assert payload["title"] == "Custom Title"
+        
+        return httpx.Response(200, json={"status": "ok"})
     
-    async with httpx.AsyncClient() as client:
-        with patch.object(client, 'post', return_value=mock_response):
-            service = MojoService(client)
-            result = await service.send_message(user_id=123, text="Test message")
-            
-            assert result is False
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        service = MojoService(client)
+        result = await service.send_message(
+            user_ids=[123, 456, 789], 
+            text="Test message",
+            title="Custom Title"
+        )
+        
+        assert result is True
+
+
+@pytest.mark.asyncio
+async def test_send_message_failure_http_error():
+    """Test message sending failure with HTTP 401 error"""
+    transport = httpx.MockTransport(mock_handler_unauthorized)
+    async with httpx.AsyncClient(transport=transport) as client:
+        service = MojoService(client)
+        result = await service.send_message(user_ids=123, text="Test message")
+        
+        assert result is False
+
+
+@pytest.mark.asyncio
+async def test_send_message_failure_500():
+    """Test message sending failure with HTTP 500 error"""
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(500, json={"error": "Internal Server Error"})
+    
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        service = MojoService(client)
+        result = await service.send_message(user_ids=123, text="Test message")
+        
+        assert result is False
 
 
 @pytest.mark.asyncio
 async def test_send_message_exception():
-    """Test message sending with exception"""
-    async with httpx.AsyncClient() as client:
-        with patch.object(client, 'post', side_effect=Exception("Network error")):
-            service = MojoService(client)
-            result = await service.send_message(user_id=123, text="Test message")
-            
-            assert result is False
+    """Test message sending with network exception"""
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.NetworkError("Network error")
+    
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        service = MojoService(client)
+        result = await service.send_message(user_ids=123, text="Test message")
+        
+        assert result is False
 
 
 @pytest.mark.asyncio
-async def test_get_students_stub():
-    """Test that get_students returns empty list (stub)"""
-    async with httpx.AsyncClient() as client:
+async def test_get_students_not_implemented():
+    """Test that get_students raises NotImplementedError"""
+    transport = httpx.MockTransport(mock_handler_success)
+    async with httpx.AsyncClient(transport=transport) as client:
         service = MojoService(client)
-        result = await service.get_students()
         
-        assert result == []
+        with pytest.raises(NotImplementedError, match="get_students is not yet implemented"):
+            await service.get_students()
 
 
 @pytest.mark.asyncio
-async def test_get_students_with_class_id_stub():
-    """Test that get_students with class_id returns empty list (stub)"""
-    async with httpx.AsyncClient() as client:
+async def test_get_students_with_class_id_not_implemented():
+    """Test that get_students with class_id raises NotImplementedError"""
+    transport = httpx.MockTransport(mock_handler_success)
+    async with httpx.AsyncClient(transport=transport) as client:
         service = MojoService(client)
-        result = await service.get_students(class_id=5)
         
-        assert result == []
+        with pytest.raises(NotImplementedError, match="get_students is not yet implemented"):
+            await service.get_students(class_id=5)
 
 
 @pytest.mark.asyncio
-async def test_get_grades_stub():
-    """Test that get_grades returns empty list (stub)"""
-    async with httpx.AsyncClient() as client:
+async def test_get_teachers_not_implemented():
+    """Test that get_teachers raises NotImplementedError"""
+    transport = httpx.MockTransport(mock_handler_success)
+    async with httpx.AsyncClient(transport=transport) as client:
         service = MojoService(client)
-        result = await service.get_grades()
         
-        assert result == []
+        with pytest.raises(NotImplementedError, match="get_teachers is not yet implemented"):
+            await service.get_teachers()
 
 
 @pytest.mark.asyncio
-async def test_get_attendance_stub():
-    """Test that get_attendance returns empty list (stub)"""
-    async with httpx.AsyncClient() as client:
+async def test_get_subjects_not_implemented():
+    """Test that get_subjects raises NotImplementedError"""
+    transport = httpx.MockTransport(mock_handler_success)
+    async with httpx.AsyncClient(transport=transport) as client:
         service = MojoService(client)
-        result = await service.get_attendance()
         
-        assert result == []
+        with pytest.raises(NotImplementedError, match="get_subjects is not yet implemented"):
+            await service.get_subjects()
 
 
 @pytest.mark.asyncio
-async def test_get_homework_stub():
-    """Test that get_homework returns empty list (stub)"""
-    async with httpx.AsyncClient() as client:
+async def test_get_grades_not_implemented():
+    """Test that get_grades raises NotImplementedError"""
+    transport = httpx.MockTransport(mock_handler_success)
+    async with httpx.AsyncClient(transport=transport) as client:
         service = MojoService(client)
-        result = await service.get_homework()
         
-        assert result == []
+        with pytest.raises(NotImplementedError, match="get_grades is not yet implemented"):
+            await service.get_grades()
 
 
 @pytest.mark.asyncio
-async def test_get_lessons_stub():
-    """Test that get_lessons returns empty list (stub)"""
-    async with httpx.AsyncClient() as client:
+async def test_get_attendance_not_implemented():
+    """Test that get_attendance raises NotImplementedError"""
+    transport = httpx.MockTransport(mock_handler_success)
+    async with httpx.AsyncClient(transport=transport) as client:
         service = MojoService(client)
-        result = await service.get_lessons()
         
-        assert result == []
+        with pytest.raises(NotImplementedError, match="get_attendance is not yet implemented"):
+            await service.get_attendance()
+
+
+@pytest.mark.asyncio
+async def test_get_homework_not_implemented():
+    """Test that get_homework raises NotImplementedError"""
+    transport = httpx.MockTransport(mock_handler_success)
+    async with httpx.AsyncClient(transport=transport) as client:
+        service = MojoService(client)
+        
+        with pytest.raises(NotImplementedError, match="get_homework is not yet implemented"):
+            await service.get_homework()
